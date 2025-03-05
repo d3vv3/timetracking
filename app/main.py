@@ -17,6 +17,7 @@ CSV_HEADER: str = "email,timestamp\n"
 ADMIN_SECRET: str = getenv("ADMIN_SECRET", "admin")
 STATIC_PAGES_DIR: Path = Path(getenv("STATIC_PAGES_DIR", "./static_pages"))
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Function to run at startup and shutdown."""
@@ -62,9 +63,7 @@ def check_secret(
 
 
 @app.get(API_PREFIX + "/emails", dependencies=[Depends(check_secret)])
-async def get_emails(
-
-) -> list[dict[str, str]]:
+async def get_emails() -> list[dict[str, str]]:
     """Get all emails for a site."""
     SITE_DATA_PATH: Path = DATA_PATH / "mails.csv"
     # if file doesn't exist, return empty string
