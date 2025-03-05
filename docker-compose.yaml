@@ -17,3 +17,17 @@ services:
       - ${WEB_PORT:-8000}:80
     restart: unless-stopped
     user: ${DOCKER_USER:-1000:1000}
+    networks:
+      - traefik
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.timetracking.entrypoints=websecure
+      - traefik.http.routers.timetracking.rule=Host(`$DOMAIN`)
+      - traefik.http.routers.timetracking.tls=true
+      - traefik.http.routers.timetracking.tls.certresolver=le
+      - com.centurylinklabs.watchtower.enable=false
+networks:
+  timetracking:
+  traefik:
+    name: ${TRAEFIK_NETWORK}
+    external: true   
