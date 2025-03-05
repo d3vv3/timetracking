@@ -6,22 +6,16 @@ from os import getenv
 from pathlib import Path
 
 from fastapi import Depends, FastAPI
-from fastapi import Path as FasAPIPath
 from fastapi import Request
 from fastapi.responses import Response
 from fastapi.staticfiles import StaticFiles
-from modules.config_handler import ConfigHandler
 from pydantic import BaseModel, EmailStr, Field
-from watchdog.observers import Observer
 
 API_PREFIX: str = getenv("API_PREFIX", "/api")
 DATA_PATH: Path = Path(getenv("DATA_PATH", "./data"))
 CSV_HEADER: str = "email,timestamp\n"
 ADMIN_SECRET: str = getenv("ADMIN_SECRET", "admin")
 STATIC_PAGES_DIR: Path = Path(getenv("STATIC_PAGES_DIR", "./static_pages"))
-
-CONF_PATH: Path = Path("./conf/config.yaml")
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,25 +33,16 @@ app = FastAPI(
 )
 
 
-class SiteEmail(BaseModel):
+class Email(BaseModel):
     email: EmailStr = Field(..., title="Email", description="Email address to save.")
-    site: str = Field(
-        ...,
-        title="Site",
-        description="Site name to save email for.",
-        pattern="^[a-zA-Z0-9_]+$",
-    )
 
 
 @app.post(f"{API_PREFIX}/email", status_code=201)
 async def post_email(
-    site_email: SiteEmail,
+    email: Email,
 ) -> None:
     """Save an email address for a site."""
-    site: str = site_email.site
-    email: str = site_email.email
-
-    SITE_DATA_PATH: Path = DATA_PATH / f"{site}.csv"
+    SITE_DATA_PATH: Path = DATA_PATH / "mails.csv"
 
     # if file doesn't exist, create it with csv header
     if not SITE_DATA_PATH.exists():
@@ -76,24 +61,12 @@ def check_secret(
         return Response(status_code=401, content="Wrong secret.")
 
 
-@app.get(f"{API_PREFIX}/sites", dependencies=[Depends(check_secret)])
-async def get_sites() -> list[str]:
-    """Get all sites with emails."""
-    # get all csv files in data directory
-    return [site.stem for site in DATA_PATH.glob("*.csv")]
-
-
-@app.get(API_PREFIX + "/emails/{site}", dependencies=[Depends(check_secret)])
+@app.get(API_PREFIX + "/emails", dependencies=[Depends(check_secret)])
 async def get_emails(
-    site: str = FasAPIPath(
-        ...,
-        title="Site",
-        description="Site name to get emails for.",
-        pattern="^[a-zA-Z0-9_]+$",
-    ),
+
 ) -> list[dict[str, str]]:
     """Get all emails for a site."""
-    SITE_DATA_PATH: Path = DATA_PATH / f"{site}.csv"
+    SITE_DATA_PATH: Path = DATA_PATH / "mails.csv"
     # if file doesn't exist, return empty string
     if not SITE_DATA_PATH.exists():
         return Response(status_code=404)
@@ -106,8 +79,3 @@ async def get_emails(
 
 
 app.mount("/", StaticFiles(directory=STATIC_PAGES_DIR, html=True), name="static")
-
-observer = Observer()
-config_handler = ConfigHandler()
-observer.schedule(config_handler, path=CONF_PATH, recursive=False)
-observer.start()

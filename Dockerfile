@@ -6,11 +6,11 @@ RUN groupadd --gid 1000 appuser \
 COPY ./requirements.txt /app/
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-COPY ./app/ /app/
-COPY ./template/ /app/template/
 WORKDIR /app/
+COPY ./app/ .
+COPY ./website/src static_pages/
 
-RUN mkdir conf/ data/ static_pages/
+RUN mkdir conf/ data/
 RUN chown -R appuser:appuser /app/conf /app/data /app/static_pages
 
 USER appuser
